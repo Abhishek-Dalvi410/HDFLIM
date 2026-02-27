@@ -252,7 +252,7 @@ def inferer_captions_using_HD(img, top_k, caption_size, window_length, fixed_tem
 
 def clean_caption_after_HD_inference(dirty_caption, use_LLM_paraphraser=False):
     
-    # Remove EOS Tag
+    # Remove Tags if present; sometimes this happens
     clean_caption = dirty_caption.replace("<|im_end|>", "")
 
     # Prompt Template
