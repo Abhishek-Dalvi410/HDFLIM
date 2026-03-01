@@ -96,7 +96,7 @@ Follow the instructions at [https://github.com/facebookresearch/dinov3](https://
 
 Download the following pretrained `.pt` files and place them in `saved_HD_mats/`:
 
-#### HD Projection Matrices (Links are down for now, will be updated soon)
+#### HD Projection Matrices (⚠️ Links are down for now, will be updated soon)
 
 | File | Description | Download |
 |---|---|---|
@@ -107,6 +107,7 @@ Download the following pretrained `.pt` files and place them in `saved_HD_mats/`
 #### Vocabulary HD Prototypes
 
 Prototypes are precomputed HD vectors over the vocabulary used during HD logits computation. Choose the one that matches your use case:
+(⚠️ Links are down for now, will be updated soon)
 
 | File | Description | Download |
 |---|---|---|
