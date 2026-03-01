@@ -66,7 +66,7 @@ An A100 40GB GPU is required to run the models comfortably. 80–100 GB of CPU m
 
 ## PCKGs/Models Requirements
 
-- PyTorch (with CUDA recommended)
+- PyTorch (CUDA approperiate versions compatible with DINOv3 and Qwen3)
 - `transformers`, `huggingface_hub`
 - `torchvision`
 - `Pillow`, `numpy`, `pandas`, `tqdm`
