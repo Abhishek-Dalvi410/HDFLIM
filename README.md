@@ -218,7 +218,7 @@ python HD_eval.py \
 - Train/Learn Code is yet to be released!
 - Will be uploading download links for LSH and prototypes (prototype files are pretty large).
 - Experiments in this work were performed on the Pennsylvania State University’s Institute for Computational and Data Sciences’ ROAR supercomputer.
-- ROAR supercomputer is a SLURM HPC cluster and it has infinibacked storage, so disk(np.memmap) read/wrties are pretty quick.
+- ROAR supercomputer is a SLURM HPC cluster and it has infiniband storage, so disk(np.memmap) read/wrties are pretty quick.
 
 ---
 ## If any questions please feel free to reach out at abd5811@psu.edu :)
