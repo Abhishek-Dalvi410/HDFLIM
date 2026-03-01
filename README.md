@@ -2,7 +2,7 @@
 
 **HDFLIM (HyperDimensional computing with Frozen Language and Image Models)** — a framework for cross-modal alignment and image captioning that keeps pretrained vision and language models fully frozen using Hyperdimensional computing.
 
-HD Computing is A.K.A: Binary Splatter Code (BSC), Vector Symbolic Architectures (VSA), Holographic Reduced Representations (HRR). .... and many more
+HD Computing is A.K.A: Binary Splatter Codes (BSC), Vector Symbolic Architectures (VSA), Holographic Reduced Representations (HRR). .... and many more
 
 ---
 
