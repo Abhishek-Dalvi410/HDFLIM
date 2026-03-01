@@ -14,7 +14,7 @@ HDFLIM establishes cross-modal mappings while keeping both vision and language m
 
 - **Frozen encoders**: Both the vision model (DINOv3) and LLM (Qwen3) are frozen — no fine-tuning required (even while learning/training).
 - **HD projection via LSH**: Random LSH matrices project continuous hidden states from vison and LLM into binary HD vectors (50,0000 dimension space).
-- **CLIP-guided sampling**: A `CLIPSemanticSampler` blends language model probabilities with CLIP image-text alignment scores for more semantically grounded captions.
+- **CLIP-guided sampling**: A `CLIPSemanticSampler` blends HDFLIM model probabilities with CLIP image-text alignment scores for more semantically grounded captions.
 - **Efficient HD logits**: `HDLogitsComputer` uses pre-allocated GPU buffers and packed boolean tensors for fast vocabulary scoring.
 
 ---
