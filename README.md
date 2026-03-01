@@ -8,7 +8,7 @@ HD Computing is A.K.A: Binary Splatter Codes (BSC), Vector Symbolic Architecture
 
 ## Overview
 
-HDFLIM establishes cross-modal mappings while keeping both vision and language models entirely frozen. Unimodal embeddings are projected into a shared hyperdimensional space, where lightweight symbolic operations — **binding**, **bundling**, and **similarity-based retrieval** — construct associative cross-modal representations in a single pass over the data. Caption generation emerges from high-dimensional memory retrieval rather than iterative gradient-based optimization.
+HDFLIM establishes cross-modal mappings while keeping both vision and language models entirely frozen. Unimodal embeddings are projected into a shared hyperdimensional space, where lightweight symbolic operations — **binding**, **bundling**, and **similarity-based retrieval** — construct associative cross-modal representations in a single pass over the data. Caption generation emerges from HD memory retrieval rather than iterative gradient-based optimization.
 
 ### Key Ideas
 
@@ -40,7 +40,7 @@ Caption Prefix ──► Qwen3 (frozen) ──► HD Projection ─────�
                           until max_len or EOS)
 ```
 
-Generation is **autoregressive**: at each step the caption prefix (including all previously predicted tokens) is re-fed into Qwen3, its HD projection is bound with the image HD vector, HD logits are computed over the vocabulary, CLIP-guided sampling selects the next token, and that token is appended to the prefix for the next iteration.
+Generation is **autoregressive**: at each step the caption prefix (including all previously predicted tokens) is re-fed into Qwen3, its HD projection is binded with the image HD vector, HD logits are computed over the vocabulary, CLIP-guided sampling selects the next token, and that token is appended to the prefix for the next iteration.
 
 ### Components
 
@@ -73,7 +73,8 @@ An A100 40GB GPU is required to run the models comfortably. 80–100 GB of CPU m
 - **DINOv3** model weights — must be downloaded separately from Meta's GitHub: [github.com/facebookresearch/dinov3](https://github.com/facebookresearch/dinov3)
 - **Qwen3** (or compatible) language model weights from HuggingFace
 
-> ⚠️ **VisionModel_utils.py requires DINOv3 with CLIP encoder model weights to be downloaded separately through Meta's website and GitHub repo.**
+> ⚠️ **VisionModel_utils.py requires DINOv3 with CLIP encoder model weights to be downloaded separately through Meta's website and GitHub repo.
+> Make sure to change the path of the model weights in the torch.hub.load(...) line in VisionModel_utils.py**
 
 ---
 
