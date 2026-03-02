@@ -216,14 +216,17 @@ python HD_eval.py \
 ## Notes
 
 - `HDLogitsComputer` pre-allocates GPU buffers reused across all inference calls to minimize memory allocation overhead.
-- The `pooling` parameter in `HDLogitsComputer` supports `'max'` or `'sum'` (not used sum in evals but optional kept for future work) pooling over patch tokens.
+- The `pooling` parameter in `HDLogitsComputer` supports `'max'` or `'sum'` (not used sum in evals but optional kept for future work).
 - Train/Learn Code is yet to be released!
 - Will be uploading download links for LSH and prototypes (prototype files are pretty large).
 - Experiments in this work were performed on the Pennsylvania State University’s Institute for Computational and Data Sciences’ ROAR supercomputer.
 - ROAR supercomputer is a SLURM HPC cluster and it has infiniband storage, so disk(np.memmap) read/wrties are pretty quick.
+- For `HDLogitsComputer` There is a possibility of implementing this with Triton or CUDA Kernels to optimize memory and performance. The LUT (Look-Up Table) for popcount followed by sum (highlighted with arrow comment in the demo code) is the main memory bottleneck.
 
 ---
 ## If any questions please feel free to reach out at abd5811@psu.edu :)
+
+P.S I’m terrible at naming functions and classes memorably.
 
 ## License
 
