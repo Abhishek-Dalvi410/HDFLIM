@@ -10,7 +10,7 @@ HD Computing is A.K.A: Binary Splatter Codes (BSC), Vector Symbolic Architecture
 
 HDFLIM establishes cross-modal mappings while keeping both vision and language models entirely frozen. Unimodal embeddings are projected into a shared hyperdimensional space, where lightweight symbolic operations — **binding**, **bundling**, and **similarity-based retrieval** — construct associative cross-modal representations in a single pass over the data. Caption generation emerges from HD memory retrieval rather than iterative gradient-based optimization.
 
-It is highly recommended to explore the demo.ipynb notebook get familar with things. notebook to get familiar with the framework. Please download the required files from the [link](https://huggingface.co/adalvi/HDFLIM/tree/main) before running the demo or evals.
+It is highly recommended to explore the demo.ipynb notebook get familar with the HDFLIM framework. Please download the required files from the [link](https://huggingface.co/adalvi/HDFLIM/tree/main) before running the demo or evals.
 
 ### Key Ideas
 
