@@ -123,7 +123,7 @@ Download the following pretrained `.pt` files and place them in `saved_HD_mats/`
 
 #### Vocabulary HD Prototypes
 
-Prototypes are precomputed HD vectors over the vocabulary used during HD logits computation. Choose the one that matches your use case:
+Prototypes are learned during HDFLIM learning phase and then converted to binary representations and then bit-packed:
 
 | File | Description | Download |
 |---|---|---|
