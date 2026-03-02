@@ -226,7 +226,7 @@ python HD_eval.py \
 ---
 ## If any questions please feel free to reach out at abd5811@psu.edu :)
 
-P.S I’m terrible at naming functions and classes memorably.
+P.S I’m terrible at naming functions and classes in a mnemonic way.
 
 ## License
 
