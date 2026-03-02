@@ -1,5 +1,19 @@
 # HDFLIM
 
+This repo contains an implementation of the HDFLIM as described in the paper "Hyperdimensional Cross-Modal Alignment of Frozen Language and Image Models for Efficient Image Captioning".
+
+```
+@misc{dalvi2026_HDFLIM,
+      title={Hyperdimensional Cross-Modal Alignment of Frozen Language and Image Models for Efficient Image Captioning}, 
+      author={Abhishek Dalvi and Vasant Honavar},
+      year={2026},
+      eprint={2602.23588},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2602.23588}, 
+}
+```
+
 **HDFLIM (HyperDimensional computing with Frozen Language and Image Models)** — a framework for cross-modal alignment and image captioning that keeps pretrained vision and language models fully frozen using Hyperdimensional computing.
 
 HD Computing is A.K.A: Binary Splatter Codes (BSC), Vector Symbolic Architectures (VSA), Holographic Reduced Representations (HRR). .... and many more
