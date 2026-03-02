@@ -10,6 +10,8 @@ HD Computing is A.K.A: Binary Splatter Codes (BSC), Vector Symbolic Architecture
 
 HDFLIM establishes cross-modal mappings while keeping both vision and language models entirely frozen. Unimodal embeddings are projected into a shared hyperdimensional space, where lightweight symbolic operations — **binding**, **bundling**, and **similarity-based retrieval** — construct associative cross-modal representations in a single pass over the data. Caption generation emerges from HD memory retrieval rather than iterative gradient-based optimization.
 
+It is highly recommended to explore the demo.ipynb notebook get familar with things. notebook to get familiar with the framework. Please download the required files from the [link](https://huggingface.co/adalvi/HDFLIM/tree/main) before running the demo or evals.
+
 ### Key Ideas
 
 - **Frozen encoders**: Both the vision model (DINOv3) and LLM (Qwen3) are frozen — no fine-tuning required (even while learning/training).
@@ -101,19 +103,18 @@ Download the following pretrained `.pt` files and place them in `saved_HD_mats/`
 
 | File | Description | Download |
 |---|---|---|
-| `LM_LSH_matrix.pt` | LSH projection matrix for the language model | [Download]() |
-| `img_LSH_matrix.pt` | LSH projection matrix for the vision model | [Download]() |
-| `img_pos_HD.pt` | Positional HD vectors for image patches | [Download]() |
+| `LM_LSH_matrix.pt` | LSH projection matrix for the language model | [Download](https://huggingface.co/adalvi/HDFLIM/tree/main) |
+| `img_LSH_matrix.pt` | LSH projection matrix for the vision model | [Download](https://huggingface.co/adalvi/HDFLIM/tree/main) |
+| `img_pos_HD.pt` | Positional HD vectors for image patches | [Download](https://huggingface.co/adalvi/HDFLIM/tree/main) |
 
 #### Vocabulary HD Prototypes
 
 Prototypes are precomputed HD vectors over the vocabulary used during HD logits computation. Choose the one that matches your use case:
-(⚠️ Links are down for now, will be updated soon)
 
 | File | Description | Download |
 |---|---|---|
-| `vocab_HD_packed_COCO.pt` | Prototypes learned on the COCO dataset | [Download]() |
-| `vocab_HD_packed_13M.pt` | Prototypes learned on a 13M PixelProse image-caption dataset | [Download]() |
+| `vocab_HD_packed_COCO.pt` | Prototypes learned on the COCO dataset | [Download](https://huggingface.co/adalvi/HDFLIM/tree/main) |
+| `vocab_HD_packed_13M.pt` | Prototypes learned on a 13M PixelProse image-caption dataset | [Download](https://huggingface.co/adalvi/HDFLIM/tree/main) |
 
 > `vocab_HD_packed_COCO` is learned using for COCO-Karpathy train split; `vocab_HD_packed_13M` is learned using PixelProse Dataset.
 
