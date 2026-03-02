@@ -99,7 +99,7 @@ Follow the instructions at [https://github.com/facebookresearch/dinov3](https://
 
 Download the following pretrained `.pt` files and place them in `saved_HD_mats/`:
 
-#### HD Projection Matrices (⚠️ Links are down for now, will be updated soon)
+#### HD Projection Matrices
 
 | File | Description | Download |
 |---|---|---|
