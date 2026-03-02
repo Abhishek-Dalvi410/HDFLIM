@@ -217,7 +217,7 @@ python HD_eval.py \
     --fixed_temp 1.0 \
     #-----
     --use_LLM_paraphraser True \
-    #---- If caption is sort of incomplete, caption is fed into Frozen LLM with prompt to beautify.
+    #---- If predicted caption is sort of incomplete, caption is fed into Frozen LLM with prompt to beautify.
     --top_k 80 \
     --caption_size 15 \
     --window_length 0 \
