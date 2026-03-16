@@ -1,338 +1,249 @@
+import sys
+import os
+import argparse
+from pathlib import Path
+
+# Add parent directory to path for importing VisionModel_utils and LangModel_utils
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import numpy as np
+import torch
+from tqdm import tqdm
+import faulthandler
+
 from VisionModel_utils import FrozenVisionModel_Encoding
 from LangModel_utils import FrozenLanguageModel_Encoding
 from train_dataloader import create_loader
-import torch
-from tqdm import tqdm
-import os
-from pathlib import Path
-import faulthandler
+
 faulthandler.enable()
 
 
 def create_vocab_HD_file(caption_size, vocab_size, HD_dim_size, filename):
+    """Create or load a memory-mapped vocabulary HD dictionary file."""
     shape = (caption_size, vocab_size, HD_dim_size)
     dtype = np.int32
-    
-    print("=" * 70)
-    print("VOCABULARY HYPERDIMENSIONAL DICTIONARY INITIALIZATION")
-    print("=" * 70)
-    print(f"\nConfiguration:")
-    print(f"  Caption size: {caption_size}")
-    print(f"  Vocabulary size: {vocab_size}")
-    print(f"  HD dimension size: {HD_dim_size}")
-    print(f"  Data type: {dtype.__name__}")
-    print(f"\nFile path: {filename}")
-    print(f"Target shape: {shape}")
-    
-    # Calculate memory size
+
     total_elements = caption_size * vocab_size * HD_dim_size
     memory_size_mb = (total_elements * np.dtype(dtype).itemsize) / (1024**2)
     memory_size_gb = memory_size_mb / 1024
-    
-    if memory_size_gb >= 1:
-        print(f"Memory size: ~{memory_size_gb:.2f} GB")
-    else:
-        print(f"Memory size: ~{memory_size_mb:.2f} MB")
-    
+
     print("=" * 70)
-    
-    # Check and create memory-mapped file
-    print(f"\n[Vocab HD Dictionary Memory-Mapped File]")
-    
+    print("VOCABULARY HYPERDIMENSIONAL DICTIONARY INITIALIZATION")
+    print("=" * 70)
+    print(f"\n  Caption size:    {caption_size}")
+    print(f"  Vocabulary size: {vocab_size}")
+    print(f"  HD dimension:    {HD_dim_size}")
+    print(f"  Shape:           {shape}")
+    print(f"  Memory:          ~{memory_size_gb:.2f} GB" if memory_size_gb >= 1 else f"  Memory:          ~{memory_size_mb:.2f} MB")
+    print(f"  File:            {filename}")
+
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
     if os.path.exists(filename):
-        print(f"    Status: ✓ File already exists - LOADING in read/write mode")
-        vocab_HD_dict_memmap = np.memmap(filename, dtype=dtype, mode='r+', shape=shape)
-        print(f"    Existing file shape: {vocab_HD_dict_memmap.shape}")
-        print(f"    Existing file dtype: {vocab_HD_dict_memmap.dtype}")
+        print(f"  Status: File exists — loading in r+ mode")
+        vocab_HD = np.memmap(filename, dtype=dtype, mode='r+', shape=shape)
     else:
-        print(f"    Status: ✗ File does not exist - CREATING...")
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        vocab_HD_dict_memmap = np.memmap(filename, dtype=dtype, mode='w+', shape=shape)
-        print(f"    Status: ✓ Successfully created memory-mapped file")
-    
-    vocab_HD_dict_memmap.flush()
-    print(f"    Action: Flushed changes to disk")
-    del vocab_HD_dict_memmap
-    print(f"    Action: Closed memory-mapped file")
-    
-    print("\n" + "=" * 70)
-    print("PROCESS COMPLETED")
+        print(f"  Status: Creating new file...")
+        vocab_HD = np.memmap(filename, dtype=dtype, mode='w+', shape=shape)
+
+    vocab_HD.flush()
+    del vocab_HD
     print("=" * 70)
 
 
-def learn_HD(shard_pattern, vision_encoders, caption_encoders, vocab_file_name):
-    batch_size = 50
-    
-    # Create DataLoader using the provided function
-    # Path to your shards
-    print("Creating DataLoader....")
-    print("Path to webdataset shards: ", shard_pattern)
-    # Create DataLoader
+def _init_matrix(path, shape, dtype, description, binary=False):
+    """Helper to create or load a saved torch matrix."""
+    print(f"\n  [{description}]")
+    print(f"    Path:  {path}")
+    print(f"    Shape: {shape}  Dtype: {dtype}")
+
+    if os.path.exists(path):
+        print(f"    Status: Already exists — skipping")
+        return
+
+    print(f"    Status: Creating...")
+    if binary:
+        mat = (2 * torch.randint(0, 2, size=shape, dtype=dtype)) - 1
+    else:
+        mat = torch.randn(size=shape, dtype=dtype)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    torch.save(mat, path)
+    print(f"    Saved ({mat.numel() * mat.element_size() / (1024**2):.1f} MB)")
+    del mat
+
+
+def init_HD_matrices(save_dir, HD_dim_size,
+                     vision_hidden_dim=1024, vision_num_patches=1025,
+                     language_hidden_dim=2560):
+    """Initialise LSH and positional HD matrices for both vision and language models."""
+    os.makedirs(save_dir, exist_ok=True)
+
+    print("=" * 70)
+    print("HD MATRIX INITIALIZATION")
+    print("=" * 70)
+    print(f"  HD dimension: {HD_dim_size}")
+    print(f"  Save dir:     {save_dir}")
+
+    # Vision model matrices
+    _init_matrix(
+        os.path.join(save_dir, "img_LSH_matrix.pt"),
+        (vision_hidden_dim, HD_dim_size),
+        torch.bfloat16,
+        "Image LSH Matrix",
+    )
+    _init_matrix(
+        os.path.join(save_dir, "img_pos_HD.pt"),
+        (1, vision_num_patches, HD_dim_size),
+        torch.int16,
+        "Image Position HD",
+        binary=True,
+    )
+
+    # Language model matrix
+    _init_matrix(
+        os.path.join(save_dir, "LM_LSH_matrix.pt"),
+        (language_hidden_dim, HD_dim_size),
+        torch.bfloat16,
+        "Language Model LSH Matrix",
+    )
+
+    print("\n" + "=" * 70)
+
+
+def learn_HD(shard_pattern, vision_encoders, caption_encoders, vocab_file_name,
+             batch_size=50):
+    """Main training loop: encode images + captions into HD space and accumulate into vocab dictionary."""
+    print(f"\nCreating DataLoader from: {shard_pattern}")
     dataloader = create_loader(
         shard_pattern=shard_pattern,
         batch_size=batch_size,
         resize_size=512,
         crop_size=512,
-        aspect_ratio_threshold = 1.1, # For training this seems good as not much squeezing
-        num_workers=0,  # adjust for your machine
-        shuffle=False
+        aspect_ratio_threshold=1.1,
+        num_workers=0,
+        shuffle=False,
     )
-    
-    print("Batch Size = ", batch_size)
-    
-    # Initialize vocab HD file
+    print(f"  Batch size: {batch_size}")
+
+    # Vocab HD memmap
     shape = (caption_encoders.caption_size, caption_encoders.vocab_size, caption_encoders.HD_dim_size)
-    create_vocab_HD_file(caption_encoders.caption_size, caption_encoders.vocab_size, caption_encoders.HD_dim_size, vocab_file_name)
-    vocab_HD_dict_memmap = np.memmap(vocab_file_name, dtype=np.int32, mode='r+', shape=shape)
-    
-    print("Now Starting Training.....")
-    
-    # Process batches using the DataLoader
-    for batch_num, (imgs, img_captions, shard_url) in enumerate(tqdm(dataloader, desc="Processing Batches", position=0, dynamic_ncols=True), 1):
-        
-        # Print shard info every 10 batches or when it changes
-        # Kept this as one can resume from the shard if error occurs
+    create_vocab_HD_file(caption_encoders.caption_size, caption_encoders.vocab_size,
+                         caption_encoders.HD_dim_size, vocab_file_name)
+    vocab_HD = np.memmap(vocab_file_name, dtype=np.int32, mode='r+', shape=shape)
+
+    print("Starting training...\n")
+
+    for batch_num, (imgs, img_captions, shard_url) in enumerate(
+        tqdm(dataloader, desc="Batches", dynamic_ncols=True), 1
+    ):
         if batch_num % 20 == 0:
-            tqdm.write(f"\nBatch {batch_num} - Current shard: {shard_url}")
-        
-        # img: torch.Tensor of shape (batch_size, 3, 512, 512)
-        # img_captions: list of strings
+            tqdm.write(f"Batch {batch_num} — shard: {shard_url}")
 
-        len_img_captions = len(img_captions)
-        
-        hidden_batches_imgs, _ = vision_encoders.get_h_img(imgs)
+        n = len(img_captions)
 
+        # Vision encoding → HD
+        hidden_imgs, _ = vision_encoders.get_h_img(imgs)
         del imgs
-        
-        if batch_num < 10:
-            print("Checks to see how img captions look like")
-            print(img_captions[batch_num])
+        HD_imgs = vision_encoders.get_img_HD_vec(hidden_imgs)
+        del hidden_imgs
 
-        batch_input_tokenized, hidden_batches_captions = caption_encoders.get_h_caption(img_captions)
-        
-        # Drop the first 2 tokens (prefix tokens for "This image")
-        batch_input_tokenized = batch_input_tokenized[:, 2:]  # Drop first 2 tokens
-        hidden_batches_captions = hidden_batches_captions[:, 2:, :]  # Drop first 2 positions
-
+        # Caption encoding → HD (drop 2 prefix tokens for "This image")
+        tokenized, hidden_caps = caption_encoders.get_h_caption(img_captions)
+        tokenized = tokenized[:, 2:]
+        hidden_caps = hidden_caps[:, 2:, :]
         del img_captions
+        HD_caps = caption_encoders.get_caption_HD_vec(hidden_caps)
+        del hidden_caps
 
-        HD_batches_imgs = vision_encoders.get_img_HD_vec(hidden_batches_imgs)
+        # Bind image and caption HD vectors
+        HD_combined = (HD_imgs.unsqueeze(1) * HD_caps).to(torch.int32).cpu().numpy()
+        del HD_imgs, HD_caps
 
-        del hidden_batches_imgs
+        # Accumulate into vocab dictionary
+        for i in tqdm(range(n), desc="Images", position=1, leave=False, dynamic_ncols=True):
+            tokens = tokenized[i]
+            hd_row = HD_combined[i]
+            for j in range(tokens.shape[0] - 1):
+                tok = tokens[j + 1].item()
+                vocab_HD[j, tok, :] += hd_row[j]
+                if tok == caption_encoders.eos_id:
+                    break
 
-        HD_batches_captions = caption_encoders.get_caption_HD_vec(hidden_batches_captions)
+        vocab_HD.flush()
+        del HD_combined, tokenized
 
-        del hidden_batches_captions
-
-        HD_batch_img_cap = HD_batches_imgs.unsqueeze(1) * HD_batches_captions
-
-        HD_batch_img_cap = HD_batch_img_cap.to(torch.int32)
-
-        HD_batch_img_cap = HD_batch_img_cap.cpu()
-
-        HD_batch_img_cap = HD_batch_img_cap.numpy()
-
-        del HD_batches_imgs
-        del HD_batches_captions
-        
-        if batch_num <10:
-            print("working till here for 10 batches")
-
-        for i in tqdm(range(len_img_captions), desc="Processing each batch Image", position=1, leave=False, dynamic_ncols=True):
-            img_cap_HD = HD_batch_img_cap[i]
-
-            cap_tokenized = batch_input_tokenized[i]
-
-            for j in range(cap_tokenized.shape[0]-1):
-
-                token = cap_tokenized[j+1].item()
-                vocab_HD_dict_memmap[j,token,:] = vocab_HD_dict_memmap[j,token,:] + img_cap_HD[j]
-
-                if token == caption_encoders.eos_id:
-                  break
-
-        vocab_HD_dict_memmap.flush()
-        del HD_batch_img_cap
-        del batch_input_tokenized
+    del vocab_HD
 
 
-    del vocab_HD_dict_memmap
+def parse_args():
+    p = argparse.ArgumentParser(description="HD learning pipeline for image-caption binding")
+
+    # Paths
+    p.add_argument("--shard-pattern", required=True,
+                    help="Glob/brace pattern for webdataset tar shards, e.g. /data/shards/{00000..00049}.tar")
+    p.add_argument("--save-dir", required=True,
+                    help="Directory to save/load HD matrices (LSH, positional HD)")
+    p.add_argument("--vocab-file", required=True,
+                    help="Path for the int32 vocab HD dictionary memmap (.dat)")
+
+    # HD / model dimensions
+    p.add_argument("--hd-dim", type=int, default=50000,
+                    help="Hyperdimensional vector dimension (default: 50000)")
+    p.add_argument("--vision-hidden-dim", type=int, default=1024,
+                    help="Vision model last hidden state dim (default: 1024)")
+    p.add_argument("--vision-num-patches", type=int, default=1025,
+                    help="Vision model number of patches incl. class token (default: 1025)")
+    p.add_argument("--language-hidden-dim", type=int, default=2560,
+                    help="Language model last hidden state dim (default: 2560)")
+    p.add_argument("--caption-size", type=int, default=21,
+                    help="Max caption token length (default: 21)")
+
+    # Training
+    p.add_argument("--batch-size", type=int, default=50,
+                    help="Batch size for dataloader (default: 50)")
+
+    # Model flags
+    p.add_argument("--automodel-causal", action="store_true",
+                    help="Use AutoModelForCausalLM flag in language model")
+
+    return p.parse_args()
 
 
 def run():
-    #### HD DIMENSION SIZE #####
-    HD_dim_size = 50000
-    #----------------------END--------------------#
-    ########### CUDA DEVICE SETUP ###########
-    device = "cpu"
-    if torch.cuda.is_available():
-        # Get the current CUDA device
-        device = torch.device("cuda")
-        print("CUDA is available. \n")
-    else:
-        device = torch.device("cpu")
-        print("CUDA is not available. Using CPU. \n")
-    #----------------------END--------------------#
-    
-    ########### IMAGE/VISION MODEL LSH AND HD SETUP ###########
-    """
-    Setting Up LSH matrix for IMAGE/VISION MODEL and also position HD matrix for tokens.
-    Also, printing out info about these matrices.
-    """
-    
-    # Configuration
-    Vision_model_last_hidden_state_dim = 1024 # DINOv3.Txt patch hidden state
-    Vision_model_num_patches = 1025  # DINOv3 TXT patches plus class patch (1024+1)
-    
-    # Define save paths
-    save_dir = "/storage/group/vuh14/default/Abhishek_files/dinov3txt_qwen3/saved_HD_mats"
-    img_LSH_matrix_path = os.path.join(save_dir, "img_LSH_matrix.pt")
-    img_pos_HD_path = os.path.join(save_dir, "img_pos_HD.pt")
-    
-    # Create directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
-    
-    print("=" * 70)
-    print("HYPERDIMENSIONAL MATRIX INITIALIZATION FOR FROZEN IMAGE/VISION MODEL")
-    print("=" * 70)
-    print(f"\nConfiguration:")
-    print(f"  HD dimension size: {HD_dim_size}")
-    print(f"  Vision model hidden state dim: {Vision_model_last_hidden_state_dim}")
-    print(f"  Number of patches: {Vision_model_num_patches}")
-    print(f"\nSave directory: {save_dir}")
-    print("=" * 70)
-    
-    # Check and create img_LSH_matrix
-    print(f"\n[1] Image LSH Matrix")
-    print(f"    Path: {img_LSH_matrix_path}")
-    print(f"    Shape: ({Vision_model_last_hidden_state_dim}, {HD_dim_size})")
-    print(f"    Dtype: torch.bfloat16")
-    
-    if os.path.exists(img_LSH_matrix_path):
-        print(f"    Status: ✓ File already exists - SKIPPING creation")
-        # Load and print info about existing file
-        existing_matrix = torch.load(img_LSH_matrix_path)
-        print(f"    Existing file shape: {existing_matrix.shape}")
-        print(f"    Existing file dtype: {existing_matrix.dtype}")
-        del existing_matrix
-    else:
-        print(f"    Status: ✗ File does not exist - CREATING...")
-        img_LSH_matrix = torch.randn(
-            size=(Vision_model_last_hidden_state_dim, HD_dim_size), 
-            dtype=torch.bfloat16
-        )
-        torch.save(img_LSH_matrix, img_LSH_matrix_path)
-        print(f"    Status: ✓ Successfully created and saved")
-        print(f"    Memory size: ~{(img_LSH_matrix.numel() * 2) / (1024**2):.2f} MB")
-        del img_LSH_matrix
-    
-    # Check and create img_pos_HD
-    print(f"\n[2] Image Position HD Vectors")
-    print(f"    Path: {img_pos_HD_path}")
-    print(f"    Shape: (1, {Vision_model_num_patches}, {HD_dim_size})")
-    print(f"    Dtype: torch.int16")
-    print(f"    Values: Binary {-1, +1}")
-    
-    if os.path.exists(img_pos_HD_path):
-        print(f"    Status: ✓ File already exists - SKIPPING creation")
-        # Load and print info about existing file
-        existing_pos = torch.load(img_pos_HD_path)
-        print(f"    Existing file shape: {existing_pos.shape}")
-        print(f"    Existing file dtype: {existing_pos.dtype}")
-        print(f"    Value range: [{existing_pos.min().item()}, {existing_pos.max().item()}]")
-        del existing_pos
-    else:
-        print(f"    Status: ✗ File does not exist - CREATING...")
-        img_pos_HD = (2 * torch.randint(
-            0, 2, 
-            size=(1, Vision_model_num_patches, HD_dim_size), 
-            dtype=torch.int16
-        )) - 1
-        torch.save(img_pos_HD, img_pos_HD_path)
-        print(f"    Status: ✓ Successfully created and saved")
-        print(f"    Memory size: ~{(img_pos_HD.numel() * 2) / (1024**2):.2f} MB")
-        print(f"    Unique values: {torch.unique(img_pos_HD).tolist()}")
-        del img_pos_HD
-    
-    print("\n" + "=" * 70)
-    print("PROCESS COMPLETED")
-    print("=" * 70)
-    
-    #----------------------END--------------------#
-    
-    ########### LANGUAGE MODEL LSH AND HD SETUP ###########
-    """
-    Setting Up LSH matrix for LANGUAGE MODEL.
-    Also, printing out info about this matrices.
-    """
-    
-    # Configuration
-    Language_model_last_hidden_state_dim = 2560  # LLM Last Hidden State
-    
-    # Define save paths
-    save_dir = "/storage/group/vuh14/default/Abhishek_files/dinov3txt_qwen3/saved_HD_mats"
-    LM_LSH_matrix_path = os.path.join(save_dir, "LM_LSH_matrix.pt")
-    
-    # Create directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
-    
-    print("=" * 70)
-    print("HYPERDIMENSIONAL MATRIX INITIALIZATION FOR FROZEN LANGUAGE MODEL")
-    print("=" * 70)
-    print(f"\nConfiguration:")
-    print(f"  HD dimension size: {HD_dim_size}")
-    print(f"  Language model hidden state dim: {Language_model_last_hidden_state_dim}")
-    print(f"\nSave directory: {save_dir}")
-    print("=" * 70)
-    
-    # Check and create LM_LSH_matrix
-    print(f"\n[1] Language Model LSH Matrix")
-    print(f"    Path: {LM_LSH_matrix_path}")
-    print(f"    Shape: ({Language_model_last_hidden_state_dim}, {HD_dim_size})")
-    print(f"    Dtype: torch.bfloat16")
-    
-    if os.path.exists(LM_LSH_matrix_path):
-        print(f"    Status: ✓ File already exists - SKIPPING creation")
-        # Load and print info about existing file
-        existing_matrix = torch.load(LM_LSH_matrix_path)
-        print(f"    Existing file shape: {existing_matrix.shape}")
-        print(f"    Existing file dtype: {existing_matrix.dtype}")
-        print(f"    Memory size: ~{(existing_matrix.numel() * 2) / (1024**2):.2f} MB")
-        del existing_matrix
-    else:
-        print(f"    Status: ✗ File does not exist - CREATING...")
-        LM_LSH_matrix = torch.randn(
-            size=(Language_model_last_hidden_state_dim, HD_dim_size), 
-            dtype=torch.bfloat16
-        )
-        torch.save(LM_LSH_matrix, LM_LSH_matrix_path)
-        print(f"    Status: ✓ Successfully created and saved")
-        print(f"    Memory size: ~{(LM_LSH_matrix.numel() * 2) / (1024**2):.2f} MB")
-        del LM_LSH_matrix
-    
-    print("\n" + "=" * 70)
-    print("PROCESS COMPLETED")
-    print("=" * 70)
-    
-    #----------------------END--------------------#
-    F_VM_object= FrozenVisionModel_Encoding(device = device)
-    F_LM_object = FrozenLanguageModel_Encoding(device = device, use_COCO_finetuned_model=False, AutoModelForCausalLM_flag=False, caption_size=21) # use_COCO_finetuned_model=True/False
-    
-    """
-    Path to your shards
-    Contains all tar files according to the pattern {00000..01639}.tar
-    Tar files contain images and captions in webdataset format (https://github.com/webdataset/webdataset)
-    """
-    # tar_files = "/storage/group/vuh14/default/Abhishek_files/pix2prose_512/{01330..01639}.tar"
-    # tar_files = "/storage/group/vuh14/default/Abhishek_files/pix2prose_512/{00000..01639}.tar"
-    tar_files = "/scratch/abd5811/COCO_imgs_512_wds_merged/{00000..00049}.tar"
-    
-    vocab_file_name_path = "/storage/group/vuh14/default/Abhishek_files/clip_qwen3/saved_HD_mats/vocab_HD_dict.dat" # path to int32 vocab file to be created with shape of vocab file = (caption_size, vocab_size, HD_dim_size)
-    
-    learn_HD(shard_pattern = tar_files, vision_encoders=F_VM_object, caption_encoders=F_LM_object, vocab_file_name=vocab_file_name_path)
+    args = parse_args()
+
+    # Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}\n")
+
+    # Initialise HD matrices
+    init_HD_matrices(
+        save_dir=args.save_dir,
+        HD_dim_size=args.hd_dim,
+        vision_hidden_dim=args.vision_hidden_dim,
+        vision_num_patches=args.vision_num_patches,
+        language_hidden_dim=args.language_hidden_dim,
+    )
+
+    # Frozen model encoders
+    F_VM = FrozenVisionModel_Encoding(device=device)
+    F_LM = FrozenLanguageModel_Encoding(
+        device=device,
+        AutoModelForCausalLM_flag=args.automodel_causal,
+        caption_size=args.caption_size,
+        LM_LSH_matrix_path=os.path.join(args.save_dir, "LM_LSH_matrix.pt"),
+    )
+
+    # Train
+    learn_HD(
+        shard_pattern=args.shard_pattern,
+        vision_encoders=F_VM,
+        caption_encoders=F_LM,
+        vocab_file_name=args.vocab_file,
+        batch_size=args.batch_size,
+    )
 
 
 if __name__ == "__main__":
-   run()
+    run()
