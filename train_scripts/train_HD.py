@@ -17,6 +17,8 @@ from train_dataloader import create_loader
 
 faulthandler.enable()
 
+HD_DIM = 50000
+
 
 def create_vocab_HD_file(caption_size, vocab_size, HD_dim_size, filename):
     """Create or load a memory-mapped vocabulary HD dictionary file."""
@@ -187,9 +189,7 @@ def parse_args():
     p.add_argument("--vocab-file", required=True,
                     help="Path for the int32 vocab HD dictionary memmap (.dat)")
 
-    # HD / model dimensions
-    p.add_argument("--hd-dim", type=int, default=50000,
-                    help="Hyperdimensional vector dimension (default: 50000)")
+    # Model dimensions
     p.add_argument("--vision-hidden-dim", type=int, default=1024,
                     help="Vision model last hidden state dim (default: 1024)")
     p.add_argument("--vision-num-patches", type=int, default=1025,
@@ -220,17 +220,25 @@ def run():
     # Initialise HD matrices
     init_HD_matrices(
         save_dir=args.save_dir,
-        HD_dim_size=args.hd_dim,
+        HD_dim_size=HD_DIM,
         vision_hidden_dim=args.vision_hidden_dim,
         vision_num_patches=args.vision_num_patches,
         language_hidden_dim=args.language_hidden_dim,
     )
 
     # Frozen model encoders
-    F_VM = FrozenVisionModel_Encoding(device=device)
+    F_VM = FrozenVisionModel_Encoding(
+        device=device,
+        HD_dim_size=HD_DIM,
+        last_hidden_state_dim=args.vision_hidden_dim,
+        num_patches=args.vision_num_patches,
+        img_LSH_matrix_path=os.path.join(args.save_dir, "img_LSH_matrix.pt"),
+        img_pos_HD_path=os.path.join(args.save_dir, "img_pos_HD.pt"),
+    )
     F_LM = FrozenLanguageModel_Encoding(
         device=device,
         AutoModelForCausalLM_flag=args.automodel_causal,
+        HD_dim_size=HD_DIM,
         caption_size=args.caption_size,
         LM_LSH_matrix_path=os.path.join(args.save_dir, "LM_LSH_matrix.pt"),
     )
