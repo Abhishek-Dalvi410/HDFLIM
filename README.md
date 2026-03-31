@@ -237,6 +237,7 @@ python HD_eval.py \
 - Experiments in this work were performed on the Pennsylvania State University’s Institute for Computational and Data Sciences’ ROAR supercomputer.
 - ROAR supercomputer is a SLURM HPC cluster and it has infiniband storage, so disk(np.memmap) read/wrties are pretty quick.
 - For `HDLogitsComputer` There is a possibility of implementing this with Triton or CUDA Kernels to optimize memory and performance. The LUT (Look-Up Table) for popcount followed by sum (highlighted with arrow comment in the demo code) is the main memory bottleneck.
+- Qwen2VL COCO Fintuned LoRA adpaters used in this work for evaluations can be found at [https://huggingface.co/adalvi/qwen2vl-lora-coco](https://huggingface.co/adalvi/qwen2vl-lora-coco).
 
 ---
 ## If any questions please feel free to reach out at abd5811@psu.edu :)
